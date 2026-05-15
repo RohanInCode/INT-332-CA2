@@ -1,8 +1,3 @@
-# Flask — the web framework that powers the app
 flask==3.0.3
-
-# Gunicorn — production-grade WSGI server used inside Docker
 gunicorn==22.0.0
-
-# Pytest — test runner used in the CI pipeline (Job 1)
 pytest==8.2.0
