@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<!-- Standard HTML5 document declaration -->
+<html lang="en">
+<head>
+  <!-- Tell the browser to use UTF-8 character encoding -->
+  <meta charset="UTF-8" />
+
+  <!-- Make the page responsive on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Page title shown in the browser tab -->
+  <title>File Integrity Checker</title>
+
+  <!-- Google Font — Inter, a clean modern typeface -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── RESET & BASE ── */
+
+    /* Remove default margins and set box model to include padding in width */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* Apply dark navy background and white text to the entire page */
+    body {
+      background-color: #0d1117;   /* Dark navy — GitHub-style dark theme */
+      color: #e6edf3;              /* Off-white text for readability */
+      font-family: 'Inter', sans-serif;  /* Apply the Google Font */
+      min-height: 100vh;           /* Ensure page fills full viewport height */
+      padding: 40px 20px;          /* Add breathing room around the content */
+    }
+
+    /* ── HEADER ── */
+
+    /* Center the header text at the top of the page */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    /* The main title — large and bold */
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #58a6ff;              /* Soft blue accent color for the title */
+      letter-spacing: -0.5px;
+    }
+
+    /* Subtitle below the title — lighter and smaller */
+    header p {
+      margin-top: 8px;
+      color: #8b949e;              /* Muted grey for secondary text */
+      font-size: 0.95rem;
+    }
+
+    /* ── ALERT BANNERS ── */
+
+    /* Shared base styles for both SAFE and TAMPERED alert boxes */
+    .alert {
+      padding: 16px 24px;          /* Inner padding for comfort */
+      border-radius: 10px;         /* Rounded corners */
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 32px;         /* Space below the alert */
+      max-width: 900px;            /* Limit width to match the card layout */
+      margin-left: auto;           /* Center horizontally */
+      margin-right: auto;
+    }
+
+    /* GREEN alert — shown when file is SAFE (unchanged) */
+    .alert-safe {
+      background-color: #0f2a1a;   /* Dark green background */
+      border: 2px solid #2ea043;   /* Bright green border */
+      color: #3fb950;              /* Green text */
+    }
+
+    /* RED alert — shown when file is TAMPERED (hash mismatch) */
+    .alert-tampered {
+      background-color: #2d0f0f;   /* Dark red background */
+      border: 2px solid #da3633;   /* Bright red border */
+      color: #f85149;              /* Red text */
+    }
+
+    /* ── CARD LAYOUT ── */
+
+    /* Outer container that limits the content width and centers it */
+    .container {
+      max-width: 940px;
+      margin: 0 auto;              /* Center the container horizontally */
+    }
+
+    /* Places the two form cards side by side using flexbox */
+    .forms-row {
+      display: flex;               /* Enable flexbox layout */
+      gap: 24px;                   /* Space between the two cards */
+      margin-bottom: 40px;         /* Space below the row */
+    }
+
+    /* Each card takes equal width (half the row minus the gap) */
+    .card {
+      flex: 1;                     /* Both cards share equal width */
+      background-color: #161b22;   /* Slightly lighter than the page background */
+      border: 1px solid #30363d;   /* Subtle border around each card */
+      border-radius: 12px;         /* Rounded card corners */
+      padding: 28px;               /* Inner spacing inside each card */
+    }
+
+    /* Card title — the heading above each form */
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;         /* Space between heading and inputs */
+      color: #c9d1d9;              /* Light grey — readable but not too bright */
+    }
+
+    /* Icon emoji next to the card title */
+    .card h2 span {
+      margin-right: 8px;           /* Push the text away from the icon */
+    }
+
+    /* ── FORM ELEMENTS ── */
+
+    /* Stack the label above the input field */
+    .form-group {
+      margin-bottom: 16px;         /* Space between form fields */
+    }
+
+    /* Label text above each input */
+    .form-group label {
+      display: block;              /* Force label to its own line */
+      font-size: 0.85rem;
+      color: #8b949e;              /* Muted grey for labels */
+      margin-bottom: 6px;          /* Small gap between label and input */
+    }
+
+    /* File upload input element styling */
+    .form-group input[type="file"] {
+      width: 100%;                 /* Full width of the card */
+      background-color: #0d1117;   /* Dark background matching the page */
+      border: 1px solid #30363d;   /* Subtle border */
+      border-radius: 8px;          /* Rounded corners */
+      padding: 10px 12px;          /* Inner padding for the file picker */
+      color: #c9d1d9;              /* Text colour for the filename */
+      font-size: 0.875rem;
+      cursor: pointer;             /* Show a pointer cursor when hovering */
+    }
+
+    /* ── BUTTONS ── */
+
+    /* Shared button styles */
+    button {
+      width: 100%;                 /* Button fills the full card width */
+      padding: 12px;               /* Comfortable click area */
+      border: none;                /* Remove default browser border */
+      border-radius: 8px;          /* Rounded corners */
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;             /* Show pointer cursor on hover */
+      transition: opacity 0.2s;    /* Smooth fade effect on hover */
+      margin-top: 4px;
+    }
+
+    /* Green button for the "Register" action */
+    .btn-register {
+      background-color: #238636;   /* GitHub-style green */
+      color: #ffffff;              /* White text on green background */
+    }
+
+    /* Blue button for the "Verify" action */
+    .btn-verify {
+      background-color: #1f6feb;   /* GitHub-style blue */
+      color: #ffffff;              /* White text on blue background */
+    }
+
+    /* Dim the button slightly when the user hovers over it */
+    button:hover { opacity: 0.85; }
+
+    /* ── HISTORY TABLE ── */
+
+    /* Container for the history section at the bottom */
+    .history {
+      background-color: #161b22;   /* Same card background */
+      border: 1px solid #30363d;   /* Same card border */
+      border-radius: 12px;         /* Same rounded corners */
+      padding: 28px;               /* Inner spacing */
+    }
+
+    /* Section heading above the table */
+    .history h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #c9d1d9;
+    }
+
+    /* The HTML table element that holds all rows */
+    table {
+      width: 100%;                 /* Stretch table across the full card width */
+      border-collapse: collapse;   /* Remove double borders between cells */
+      font-size: 0.875rem;         /* Slightly smaller text for dense data */
+    }
+
+    /* Header row cells */
+    th {
+      text-align: left;            /* Align header text to the left */
+      padding: 10px 14px;          /* Comfortable padding in header cells */
+      color: #8b949e;              /* Muted grey for headers */
+      border-bottom: 1px solid #30363d;  /* Line below headers */
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;   /* Make headers all caps for clarity */
+      letter-spacing: 0.05em;      /* Slightly spaced letters for readability */
+    }
+
+    /* Data row cells */
+    td {
+      padding: 12px 14px;          /* Comfortable padding in data cells */
+      border-bottom: 1px solid #21262d;  /* Subtle separator line between rows */
+      color: #c9d1d9;              /* Light grey text */
+    }
+
+    /* Highlight a row slightly when the user hovers over it */
+    tr:hover td { background-color: #1c2128; }
+
+    /* Remove the bottom border on the very last row to keep it clean */
+    tr:last-child td { border-bottom: none; }
+
+    /* Status badge — coloured pill shape for SAFE / TAMPERED / Registered */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;           /* Pill padding */
+      border-radius: 20px;         /* Fully rounded pill shape */
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Green badge for SAFE status */
+    .badge-safe {
+      background-color: #0f2a1a;
+      color: #3fb950;
+      border: 1px solid #2ea043;
+    }
+
+    /* Red badge for TAMPERED status */
+    .badge-tampered {
+      background-color: #2d0f0f;
+      color: #f85149;
+      border: 1px solid #da3633;
+    }
+
+    /* Grey badge for the initial "Registered" status */
+    .badge-registered {
+      background-color: #1c2128;
+      color: #8b949e;
+      border: 1px solid #30363d;
+    }
+
+    /* ── CLEAR BUTTON (link style) ── */
+
+    /* The clear history link at the top-right of the history section */
+    .clear-link {
+      float: right;                /* Push the link to the right side */
+      font-size: 0.8rem;
+      color: #f85149;              /* Red to signal a destructive action */
+      text-decoration: none;       /* Remove underline */
+      padding: 4px 10px;
+      border: 1px solid #da3633;
+      border-radius: 6px;
+      transition: background 0.2s; /* Smooth hover background change */
+    }
+
+    /* Tint the background slightly on hover */
+    .clear-link:hover { background-color: #2d0f0f; }
+
+    /* Empty state message shown when no files have been registered yet */
+    .empty-state {
+      text-align: center;
+      color: #484f58;              /* Very muted text colour */
+      padding: 30px 0;
+      font-size: 0.9rem;
+    }
+
+    /* ── RESPONSIVE — stack cards on small screens ── */
+    @media (max-width: 640px) {
+      /* On screens narrower than 640px, stack forms vertically */
+      .forms-row { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ─── HEADER ─────────────────────────────── -->
+<header>
+  <!-- Main page title -->
+  <h1>🔐 File Integrity Checker</h1>
+
+  <!-- Short description of what the tool does -->
+  <p>Register a file's SHA-256 hash, then verify it later to detect tampering.</p>
+</header>
+
+<!-- ─── ALERT BANNER (shown only after verification) ─── -->
+
+<!-- Jinja2 checks if 'result' was passed from the Flask route -->
+{% if result %}
+
+  <!-- If the result is SAFE, show a green success alert -->
+  {% if result == "SAFE" %}
+  <div class="alert alert-safe">
+    ✅ &nbsp; <strong>{{ filename }}</strong> is <strong>SAFE</strong> — file has not been tampered with.
+  </div>
+
+  <!-- If the result is TAMPERED, show a red danger alert -->
+  {% else %}
+  <div class="alert alert-tampered">
+    🚨 &nbsp; <strong>{{ filename }}</strong> has been <strong>TAMPERED</strong> — hash mismatch detected!
+  </div>
+  {% endif %}
+
+{% endif %}
+<!-- End of alert banner -->
+
+<!-- ─── MAIN CONTENT ─────────────────────────── -->
+<div class="container">
+
+  <!-- Two forms side by side -->
+  <div class="forms-row">
+
+    <!-- ── LEFT CARD — Register File ── -->
+    <div class="card">
+      <!-- Card title with icon -->
+      <h2><span>📁</span> Register File</h2>
+
+      <!-- Form posts to the /register Flask route -->
+      <form action="/register" method="POST" enctype="multipart/form-data">
+
+        <!-- File picker input field -->
+        <div class="form-group">
+          <label for="register-file">Select a file to register its hash</label>
+          <!-- enctype="multipart/form-data" is required on the form for file uploads -->
+          <input type="file" id="register-file" name="file" required />
+        </div>
+
+        <!-- Submit button — triggers /register route -->
+        <button type="submit" class="btn-register">🔒 Register Hash</button>
+      </form>
+    </div>
+    <!-- End Left Card -->
+
+    <!-- ── RIGHT CARD — Verify File ── -->
+    <div class="card">
+      <!-- Card title with icon -->
+      <h2><span>🔍</span> Verify File</h2>
+
+      <!-- Form posts to the /verify Flask route -->
+      <form action="/verify" method="POST" enctype="multipart/form-data">
+
+        <!-- File picker input field -->
+        <div class="form-group">
+          <label for="verify-file">Select the same file to check if it changed</label>
+          <input type="file" id="verify-file" name="file" required />
+        </div>
+
+        <!-- Submit button — triggers /verify route -->
+        <button type="submit" class="btn-verify">🔎 Verify Integrity</button>
+      </form>
+    </div>
+    <!-- End Right Card -->
+
+  </div>
+  <!-- End forms-row -->
+
+  <!-- ── HISTORY TABLE ── -->
+  <div class="history">
+
+    <!-- Section heading + clear link on the same row -->
+    <h2>
+      📋 File History
+      <!-- Clicking this link calls the /clear Flask route which wipes the registry -->
+      <a href="/clear" class="clear-link">🗑 Clear All</a>
+    </h2>
+
+    <!-- Only show the table if there is at least one registered file -->
+    {% if registry %}
+
+    <table>
+      <thead>
+        <tr>
+          <!-- Column headers — all caps via CSS text-transform -->
+          <th>Filename</th>
+          <th>SHA-256 Hash (short)</th>
+          <th>Status</th>
+          <th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Jinja2 loop — iterate over every key/value in the registry dict -->
+        {% for filename, info in registry.items() %}
+        <tr>
+          <!-- Display the filename -->
+          <td>{{ filename }}</td>
+
+          <!-- Display only the first 16 characters of the hash for brevity -->
+          <td style="font-family: monospace; color: #58a6ff;">{{ info.hash[:16] }}…</td>
+
+          <!-- Display a colour-coded badge based on the status string -->
+          <td>
+            {% if info.status == "SAFE" %}
+              <!-- Green badge when safe -->
+              <span class="badge badge-safe">✅ SAFE</span>
+
+            {% elif info.status == "TAMPERED" %}
+              <!-- Red badge when tampered -->
+              <span class="badge badge-tampered">🚨 TAMPERED</span>
+
+            {% else %}
+              <!-- Grey badge for initial "Registered" state -->
+              <span class="badge badge-registered">🔒 Registered</span>
+            {% endif %}
+          </td>
+
+          <!-- Display the timestamp stored in the registry -->
+          <td style="color: #8b949e;">{{ info.time }}</td>
+        </tr>
+        {% endfor %}
+        <!-- End loop -->
+
+      </tbody>
+    </table>
+
+    {% else %}
+    <!-- Shown when the registry is empty — no files registered yet -->
+    <p class="empty-state">No files registered yet. Upload a file above to get started.</p>
+    {% endif %}
+
+  </div>
+  <!-- End history section -->
+
+</div>
+<!-- End container -->
+
+</body>
+</html>

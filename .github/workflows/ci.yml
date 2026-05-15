@@ -1,0 +1,87 @@
+# Trigger this workflow on every push to the main branch
+on:
+  push:
+    branches: [main]
+
+# Give the workflow a human-readable name shown in GitHub Actions UI
+name: CI — Build, Test & Push
+
+jobs:
+
+  # ─────────────────────────────────────────
+  # JOB 1 — Run tests with pytest
+  # ─────────────────────────────────────────
+  test:
+    # Run on the latest Ubuntu runner provided by GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Check out the repository code so the runner can access it
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Set up the correct Python version on the runner
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # Match the version used in the Dockerfile
+
+      # Step 3 — Install all Python dependencies from requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step 4 — Run pytest in "collect-only" mode (-q --co)
+      # This discovers tests without running them — safe even if no test files exist
+      - name: Run pytest (collect-only)
+        run: pytest --co -q
+
+  # ─────────────────────────────────────────
+  # JOB 2 — Build the Docker image
+  # ─────────────────────────────────────────
+  docker-build:
+    # This job only starts AFTER the test job passes
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Build the Docker image from the Dockerfile in the repo root
+      # -t tags the image with a name and the short git commit SHA for traceability
+      - name: Build Docker image
+        run: |
+          docker build -t file-integrity-checker:${{ github.sha }} .
+
+  # ─────────────────────────────────────────
+  # JOB 3 — Push the image to Docker Hub
+  # ─────────────────────────────────────────
+  docker-push:
+    # This job only starts AFTER the docker-build job passes
+    needs: docker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Check out code (needed to access the Dockerfile)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Log in to Docker Hub using repository secrets
+      # DOCKERHUB_USERNAME and DOCKERHUB_TOKEN must be set in GitHub → Settings → Secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}   # Your Docker Hub username
+          password: ${{ secrets.DOCKERHUB_TOKEN }}      # Your Docker Hub access token
+
+      # Step 3 — Build and push the image in one step using the buildx action
+      # Tags the image with both "latest" and the commit SHA for version tracking
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .                                    # Use the repo root as build context
+          push: true                                    # Actually push to Docker Hub
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/file-integrity-checker:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/file-integrity-checker:${{ github.sha }}
